@@ -2,8 +2,9 @@ import { of, Subject } from 'rxjs';
 import { FormArray } from './formArray';
 import { FormControl } from './formControl';
 import { FormGroup } from '@angular/forms';
+import { ValidatorFn } from './types';
 
-const errorFn = group => {
+const errorFn = () => {
   return { isInvalid: true };
 };
 
@@ -161,7 +162,7 @@ describe('FormArray', () => {
   it('should validateOn', () => {
     const control = createArray();
 
-    const subject = new Subject<object>();
+    const subject = new Subject<object | null>();
     control.validateOn(subject);
     subject.next({ someError: true });
     expect(control.errors).toEqual({ someError: true });
@@ -206,7 +207,7 @@ describe('FormArray', () => {
     const control = createArray();
     const spy = jest.fn();
     const validator = (control: FormArray) => (control.length < 4 ? { minimum: 4 } : null);
-    control.setValidators(validator);
+    control.setValidators(validator as ValidatorFn);
     control.errors$.subscribe(spy);
     expect(spy).toHaveBeenCalledWith({ minimum: 4 });
     control.push(new FormControl('Name'));
@@ -250,7 +251,7 @@ describe('FormArray', () => {
     control.push(new FormGroup({ type: new FormControl('Sith'), name: new FormControl('Doku') }));
     control.push(new FormGroup({ type: new FormControl('Jedi'), name: new FormControl('Windu') }));
     control.push(new FormGroup({ type: new FormControl('Sith'), name: new FormControl('Palpatine') }));
-    control.removeWhen(elt => elt.get('type').value === 'Sith');
+    control.removeWhen(elt => elt.get('type')?.value === 'Sith');
     expect(control.getRawValue()).toEqual([
       { type: 'Jedi', name: 'Luke' },
       { type: 'Jedi', name: 'Yoda' },

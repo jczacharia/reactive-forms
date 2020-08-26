@@ -15,3 +15,4 @@ export { ControlValueAccessor } from './lib/controlValueAccessor';
 export { PersistManager } from './lib/persistManager';
 export { LocalStorageManager } from './lib/localStorageManager';
 export { SessionStorageManager } from './lib/sessionStorageManager';
+export { Validators } from '@angular/forms';

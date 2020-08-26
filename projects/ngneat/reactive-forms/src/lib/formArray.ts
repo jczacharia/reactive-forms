@@ -29,14 +29,14 @@ import {
   Validator,
   ValidatorOrOpts
 } from './types';
-import { coerceArray } from './utils';
+import { coerceArray, filterNullArrayValues } from './utils';
 
 export class FormArray<T = any, E extends object = any> extends NgFormArray {
-  readonly value: T[];
-  readonly valueChanges: Observable<T[]>;
-  readonly status: ControlState;
-  readonly statusChanges: Observable<ControlState>;
-  readonly errors: E | null;
+  readonly value!: T[];
+  readonly valueChanges!: Observable<T[]>;
+  readonly status!: ControlState;
+  readonly statusChanges!: Observable<ControlState>;
+  readonly errors!: E | null;
 
   private touchChanges = new Subject<boolean>();
   private dirtyChanges = new Subject<boolean>();
@@ -55,7 +55,7 @@ export class FormArray<T = any, E extends object = any> extends NgFormArray {
     validatorOrOpts?: ValidatorOrOpts,
     asyncValidator?: AsyncValidator
   ) {
-    super(controls, validatorOrOpts, asyncValidator);
+    super(controls, validatorOrOpts, filterNullArrayValues(asyncValidator));
   }
 
   select<R>(mapFn: (state: T[]) => R): Observable<R> {
@@ -82,7 +82,7 @@ export class FormArray<T = any, E extends object = any> extends NgFormArray {
 
   patchValue(valueOrObservable: Observable<T[]>, options?: ControlEventOptions): Subscription;
   patchValue(valueOrObservable: T[], options?: ControlEventOptions): void;
-  patchValue(valueOrObservable: any, options?: ControlEventOptions): Subscription | void {
+  patchValue(valueOrObservable: Observable<T[]> | T[], options?: ControlEventOptions): Subscription | void {
     if (isObservable(valueOrObservable)) {
       return valueOrObservable.subscribe((value: T[]) => super.patchValue(value, options));
     }
@@ -153,7 +153,7 @@ export class FormArray<T = any, E extends object = any> extends NgFormArray {
   }
 
   setAsyncValidators(newValidator: AsyncValidator): void {
-    super.setAsyncValidators(newValidator);
+    super.setAsyncValidators(filterNullArrayValues(newValidator));
     super.updateValueAndValidity();
   }
 
@@ -196,7 +196,6 @@ export class FormArray<T = any, E extends object = any> extends NgFormArray {
   }
 
   removeWhen(predicate: (element: AbstractControl<T>) => boolean): void {
-    const toRemove: number[] = [];
     for (let i = this.length - 1; i >= 0; --i) {
       if (predicate(this.at(i))) {
         this.removeAt(i);

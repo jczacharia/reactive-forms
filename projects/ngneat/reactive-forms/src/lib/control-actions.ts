@@ -1,6 +1,6 @@
 import { ValidationErrors, FormArray as NgFormArray } from '@angular/forms';
 import { defer, merge, Observable, of, Subscription } from 'rxjs';
-import { distinctUntilChanged, map, tap, debounceTime, switchMap } from 'rxjs/operators';
+import { distinctUntilChanged, map, debounceTime, switchMap } from 'rxjs/operators';
 import { FormArray } from './formArray';
 import { FormControl } from './formControl';
 import { FormGroup } from './formGroup';
@@ -13,7 +13,7 @@ import {
   PersistOptions,
   ControlFactoryMap
 } from './types';
-import { coerceArray, isNil, wrapIntoObservable } from './utils';
+import { coerceArray, isNil, wrapIntoObservable, filterNullArrayValues } from './utils';
 
 function getControlValue<T>(control: AbstractControl<T>): T {
   if ((control as any).getRawValue) {
@@ -108,7 +108,7 @@ export function mergeControlValidators<T, Control extends AbstractControl<T>>(
   control: Control,
   validators: ValidatorFn<T> | ValidatorFn<T>[]
 ): void {
-  control.setValidators([control.validator, ...coerceArray(validators)]);
+  control.setValidators(filterNullArrayValues([control.validator, ...coerceArray(validators)]));
   control.updateValueAndValidity();
 }
 
@@ -130,7 +130,7 @@ export function hasErrorAndDirty<T>(control: AbstractControl<T>, error: string, 
 
 export function markAllDirty<T>(control: FormArray<T> | FormGroup<T>): void {
   control.markAsDirty({ onlySelf: true });
-  (control as any)._forEachChild(control => control.markAllAsDirty());
+  (control as any)._forEachChild((control: any) => control.markAllAsDirty());
 }
 
 export function selectControlValue$<T, R>(
@@ -142,25 +142,26 @@ export function selectControlValue$<T, R>(
 
 export function persistValue$<T>(control: FormGroup<T>, key: string, options: PersistOptions<T>): Observable<T> {
   return control.valueChanges.pipe(
-    debounceTime(options.debounceTime),
-    switchMap(value => wrapIntoObservable(options.manager.setValue(key, value)))
+    debounceTime(options.debounceTime ?? 0),
+    switchMap(value => wrapIntoObservable(options.manager!.setValue(key, value)))
   );
 }
 
 export function handleFormArrays<T>(
   control: AbstractControl<T>,
   formValue: T,
-  arrControlFactory: ControlFactoryMap<T>
+  arrControlFactory?: ControlFactoryMap<T>
 ) {
   Object.keys(formValue).forEach(controlName => {
-    const value = formValue[controlName];
+    const value = formValue[controlName as keyof T];
     if (Array.isArray(value) && control.get(controlName) instanceof NgFormArray) {
       if (!arrControlFactory || (arrControlFactory && !(controlName in arrControlFactory))) {
         throw new Error(`Please provide arrControlFactory for ${controlName}`);
       }
       const current = control.get(controlName) as NgFormArray;
-      const fc = arrControlFactory[controlName];
       clearFormArray(current);
+      const fc = arrControlFactory[controlName as keyof ControlFactoryMap<T>];
+      if (!fc) return;
       value.forEach((v, i) => current.insert(i, fc(v)));
     }
   });
