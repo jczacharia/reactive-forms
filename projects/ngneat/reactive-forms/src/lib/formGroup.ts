@@ -1,4 +1,4 @@
-import { FormGroup as NgFormGroup, FormArray as NgFormArray } from '@angular/forms';
+import { FormGroup as NgFormGroup } from '@angular/forms';
 import { isObservable, Observable, Subject, Subscription } from 'rxjs';
 import { distinctUntilChanged, tap, take, switchMap } from 'rxjs/operators';
 import {
@@ -37,17 +37,16 @@ import {
   PersistOptions,
   ControlFactoryMap
 } from './types';
-import { coerceArray, wrapIntoObservable } from './utils';
+import { coerceArray, wrapIntoObservable, filterNullArrayValues } from './utils';
 import { PersistManager } from './persistManager';
 import { LocalStorageManager } from './localStorageManager';
-import { FormArray } from './formArray';
 
 export class FormGroup<T extends Obj = any, E extends object = any> extends NgFormGroup {
-  readonly value: T;
-  readonly errors: E | null;
-  readonly valueChanges: Observable<T>;
-  readonly status: ControlState;
-  readonly statusChanges: Observable<ControlState>;
+  readonly value!: T;
+  readonly errors!: E | null;
+  readonly valueChanges!: Observable<T>;
+  readonly status!: ControlState;
+  readonly statusChanges!: Observable<ControlState>;
 
   private touchChanges = new Subject<boolean>();
   private dirtyChanges = new Subject<boolean>();
@@ -66,10 +65,12 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
     validatorOrOpts?: ValidatorOrOpts,
     asyncValidator?: AsyncValidator
   ) {
-    super(controls, validatorOrOpts, asyncValidator);
+    super(controls, validatorOrOpts, filterNullArrayValues(asyncValidator));
   }
 
-  select<R>(mapFn: (state: T) => R): Observable<R> {
+  select<R>(mapFn: (state: T) => R): Observable<R>;
+  select<R>(mapFn: (state: T[]) => R): Observable<R>;
+  select<R>(mapFn: (state: any) => R): Observable<R> {
     return selectControlValue$(this, mapFn);
   }
 
@@ -77,12 +78,12 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
     return super.getRawValue();
   }
 
-  get<K1 extends keyof T>(path?: [K1]): AbstractControl<T[K1]>;
-  get<K1 extends keyof T, K2 extends keyof T[K1]>(path?: [K1, K2]): AbstractControl<T[K1][K2]>;
+  get<K1 extends keyof T>(path?: K1 | K1[] | [K1]): AbstractControl<T[K1]> | null;
+  get<K1 extends keyof T, K2 extends keyof T[K1]>(path?: [K1, K2]): AbstractControl<T[K1][K2]> | null;
   get<K1 extends keyof T, K2 extends keyof T[K1], K3 extends keyof T[K1][K2]>(
     path?: [K1, K2, K3]
-  ): AbstractControl<T[K1][K2][K3]>;
-  get(path?: string): AbstractControl;
+  ): AbstractControl<T[K1][K2][K3]> | null;
+  get(path?: string): AbstractControl | null;
   get(path: any) {
     return super.get(path);
   }
@@ -100,7 +101,7 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
     prop3: P3,
     prop4: P4
   ): AbstractControl<T[P1][P2][P3][P4]>;
-  getControl(...names: any): AbstractControl<any> {
+  getControl(...names: any): AbstractControl<any> | null {
     return this.get(names.join('.'));
   }
 
@@ -124,7 +125,7 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
   setValue(valueOrObservable: T, options?: ControlEventOptions): void;
   setValue(valueOrObservable: any, options?: ControlEventOptions): any {
     if (isObservable(valueOrObservable)) {
-      return valueOrObservable.subscribe(value => super.setValue(value, options));
+      return valueOrObservable.subscribe((value: any) => super.setValue(value, options));
     }
 
     super.setValue(valueOrObservable, options);
@@ -134,7 +135,7 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
   patchValue(valueOrObservable: Partial<T>, options?: ControlEventOptions): void;
   patchValue(valueOrObservable: any, options?: ControlEventOptions): Subscription | void {
     if (isObservable(valueOrObservable)) {
-      return valueOrObservable.subscribe(value => super.patchValue(value, options));
+      return valueOrObservable.subscribe((value: any) => super.patchValue(value, options));
     }
 
     super.patchValue(valueOrObservable, options);
@@ -191,7 +192,7 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
   }
 
   setAsyncValidators(newValidator: AsyncValidator): void {
-    super.setAsyncValidators(newValidator);
+    super.setAsyncValidators(filterNullArrayValues(newValidator));
     super.updateValueAndValidity();
   }
 
@@ -289,7 +290,7 @@ export class FormGroup<T extends Obj = any, E extends object = any> extends NgFo
     );
   }
 
-  private restore(key: string, manager: PersistManager<T>, arrControlFactory: ControlFactoryMap<T>): Observable<T> {
+  private restore(key: string, manager: PersistManager<T>, arrControlFactory?: ControlFactoryMap<T>): Observable<T> {
     return wrapIntoObservable<T>(manager.getValue(key)).pipe(
       take(1),
       tap(value => {

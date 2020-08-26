@@ -5,6 +5,7 @@ import { FormGroup } from './formGroup';
 import { FormArray } from './formArray';
 import { switchMap } from 'rxjs/operators';
 import { wrapIntoObservable } from './utils';
+import { Validator, ValidatorFn, AbstractControl } from './types';
 
 type Person = {
   name: string;
@@ -15,7 +16,7 @@ type Person = {
   skills: string[];
 };
 
-const errorFn = group => {
+const errorFn = (group: any) => {
   return { isInvalid: true };
 };
 
@@ -240,7 +241,7 @@ describe('FormGroup', () => {
 
   it('should validateOn', () => {
     const control = createGroup();
-    const subject = new Subject<object>();
+    const subject = new Subject<object | null>();
     control.validateOn(subject);
     subject.next({ someError: true });
     expect(control.errors).toEqual({ someError: true });
@@ -288,8 +289,8 @@ describe('FormGroup', () => {
 
   it('should errorChanges$', () => {
     const control = createGroup();
-    const validator = (control: FormGroup<Person>) =>
-      control.getRawValue().name === 'Test' ? { invalidName: true } : null;
+    const validator = (control: AbstractControl<Person>) =>
+      control.value.name === 'Test' ? { invalidName: true } : null!;
     control.setValidators(validator);
     const spy = jest.fn();
     control.errors$.subscribe(spy);
@@ -312,7 +313,7 @@ describe('FormGroup', () => {
             return tickMs ? timer(tickMs).pipe(switchMap(() => of(value))) : value;
           })
         };
-        let persistValue: Person;
+        let persistValue!: Person;
         control.persist('key', { debounceTime, manager: persistManager }).subscribe(value => (persistValue = value));
         control.getControl('name').setValue('ewan');
         tick(debounceTime);

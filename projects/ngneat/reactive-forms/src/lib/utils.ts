@@ -23,3 +23,7 @@ export function wrapIntoObservable<T>(value: T | Promise<T> | Observable<T>): Ob
 
   return of(value);
 }
+
+export function filterNullArrayValues<T>(arr: Array<T | null> | T | null) {
+  return Array.isArray(arr) ? arr.filter(a => a).map(a => a!) : arr;
+}

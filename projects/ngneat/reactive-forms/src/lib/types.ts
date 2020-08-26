@@ -21,7 +21,7 @@ export interface AbstractControlOptions<T = any, E = any> extends NgAbstractCont
 }
 
 export type ValidatorOrOpts = ValidatorFn | ValidatorFn[] | AbstractControlOptions | null;
-export type AsyncValidator = AsyncValidatorFn | AsyncValidatorFn[] | null;
+export type AsyncValidator = AsyncValidatorFn | (AsyncValidatorFn | null)[] | null;
 export type Validator = ValidatorFn | ValidatorFn[];
 
 export interface ControlOptions {

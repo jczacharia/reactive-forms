@@ -3,16 +3,16 @@ import { FormControl } from './formControl';
 import { NgValidatorsErrors } from './types';
 import { Validators } from '@angular/forms';
 
-const validatorExample = new FormControl<string, NgValidatorsErrors>('', {
-  validators(control: FormControl<string>) {
-    return {
-      maxlength: {
-        actualLength: 2,
-        requiredLength: 3
-      }
-    };
-  }
-});
+// const validatorExample = new FormControl<string, NgValidatorsErrors>('', {
+//   validators(control: FormControl<string>) {
+//     return {
+//       maxlength: {
+//         actualLength: 2,
+//         requiredLength: 3
+//       }
+//     };
+//   }
+// });
 
 describe('FormControl', () => {
   it('should valueChanges$', () => {
@@ -161,7 +161,7 @@ describe('FormControl', () => {
 
   it('should validateOn', () => {
     const control = new FormControl<string>();
-    const subject = new Subject<object>();
+    const subject = new Subject<object | null>();
     control.validateOn(subject);
     subject.next({ someError: true });
     expect(control.errors).toEqual({ someError: true });
@@ -204,7 +204,7 @@ describe('FormControl', () => {
     const spy = jest.fn();
     control.errors$.subscribe(spy);
     expect(spy).toHaveBeenCalledWith({ required: true });
-    control.patchValue(null);
+    // control.patchValue(null);
     control.patchValue('');
     expect(spy).toHaveBeenCalledTimes(2);
     control.patchValue('Test');

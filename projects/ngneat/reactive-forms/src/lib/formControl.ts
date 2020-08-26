@@ -29,15 +29,15 @@ import {
   Validator,
   ValidatorOrOpts
 } from './types';
-import { coerceArray } from './utils';
+import { coerceArray, filterNullArrayValues } from './utils';
 
 export class FormControl<T = any, E extends object = any> extends NgFormControl {
-  readonly value: T;
-  readonly errors: E | null;
-  readonly asyncValidator: AsyncValidatorFn<T>;
-  readonly valueChanges: Observable<T>;
-  readonly status: ControlState;
-  readonly statusChanges: Observable<ControlState>;
+  readonly value!: T;
+  readonly errors!: E | null;
+  readonly asyncValidator!: AsyncValidatorFn<T>;
+  readonly valueChanges!: Observable<T>;
+  readonly status!: ControlState;
+  readonly statusChanges!: Observable<ControlState>;
 
   private touchChanges = new Subject<boolean>();
   private dirtyChanges = new Subject<boolean>();
@@ -51,13 +51,17 @@ export class FormControl<T = any, E extends object = any> extends NgFormControl 
   readonly status$ = controlStatusChanges$<T>(this);
   readonly errors$ = controlErrorChanges$<E>(this);
 
-  constructor(formState?: OrBoxedValue<T>, validatorOrOpts?: ValidatorOrOpts, asyncValidator?: AsyncValidator) {
-    super(formState, validatorOrOpts, asyncValidator);
+  constructor(
+    formState?: OrBoxedValue<T> | null,
+    validatorOrOpts?: ValidatorOrOpts | null,
+    asyncValidator?: AsyncValidator
+  ) {
+    super(formState, validatorOrOpts, filterNullArrayValues(asyncValidator));
   }
 
   setValue(valueOrObservable: Observable<T>, options?: ControlOptions): Subscription;
   setValue(valueOrObservable: T, options?: ControlOptions): void;
-  setValue(valueOrObservable: any, options?: ControlOptions): Subscription | void {
+  setValue(valueOrObservable: Observable<T> | T, options?: ControlOptions): Subscription | void {
     if (isObservable(valueOrObservable)) {
       return valueOrObservable.subscribe(value => super.setValue(value, options));
     }
@@ -67,7 +71,7 @@ export class FormControl<T = any, E extends object = any> extends NgFormControl 
 
   patchValue(valueOrObservable: Observable<T>, options?: ControlOptions): Subscription;
   patchValue(valueOrObservable: T, options?: ControlOptions): void;
-  patchValue(valueOrObservable: any, options?: ControlOptions): Subscription | void {
+  patchValue(valueOrObservable: Observable<T> | T, options?: ControlOptions): Subscription | void {
     if (isObservable(valueOrObservable)) {
       return valueOrObservable.subscribe(value => super.patchValue(value, options));
     }
@@ -126,7 +130,7 @@ export class FormControl<T = any, E extends object = any> extends NgFormControl 
   }
 
   setAsyncValidators(newValidator: AsyncValidator): void {
-    super.setAsyncValidators(newValidator);
+    super.setAsyncValidators(filterNullArrayValues(newValidator));
     super.updateValueAndValidity();
   }
 
