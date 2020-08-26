@@ -11,6 +11,7 @@ import { FormControl, FormGroup, FormArray } from '@angular/forms';
   `
 })
 export class TestFormComponent {
+  group = new FormGroup({});
   control: FormControl = new FormControl();
 
   constructor() {
